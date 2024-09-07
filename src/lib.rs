@@ -212,6 +212,7 @@ impl std::default::Default for CRC128 {
 #[cfg(test)]
 mod tests {
     use super::{CRC, CRC128, CRC16, CRC32, CRC64, CRC8};
+    use crc as crcl;
 
     const TEST_DATA: &[u8] = b"hello world";
 
@@ -253,5 +254,27 @@ mod tests {
         crc.update(TEST_DATA);
         let crc = crc.finalize();
         assert!(crc == 0x1B004A91C7EF19134E779C0AC320AD8C, "{:#X}", crc);
+    }
+
+    #[test]
+    fn sanity_test() {
+        const CCRC: crcl::Algorithm<u16> = crcl::Algorithm {
+            width: 16,
+            poly: 0b1000_0000_0000_0101,
+            init: 0xffff,
+            refin: false,
+            refout: false,
+            xorout: 0xffff,
+            check: 0x5d38,
+            residue: 0x0000,
+        };
+        let ccrc = crcl::Crc::<u16>::new(&CCRC);
+        let mut dig = ccrc.digest();
+        dig.update(TEST_DATA);
+        let a = dig.finalize();
+        let mut crc = CRC16::default();
+        crc.update(TEST_DATA);
+        let b = crc.finalize();
+        assert_eq!(a, b, "LIB: {:#X} != CRATE: {:#X}", a, b);
     }
 }
